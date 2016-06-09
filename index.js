@@ -61,7 +61,6 @@ if (os.platform() == 'darwin') os_offset = 2
 //setup variables for where stuff goes and comes from
 codebase = "code/"
 histbase = "code_stamped/"
-tempbase = "temp_results/"
 resbase = "results/"
 tempbase = resbase //this should just work
 stored_resbase = "marked_results/" //ambitions that never came to fruition
@@ -570,13 +569,17 @@ app.post('*/readresults', function(req, res)
 	catch (e)
 	{
 		//console.log(e)
-		out =  base_template
+		out =  out
 	}
 	
 	//get cc
 	cc = x['cc']
 	if (cc == undefined)  cc = 0;
-	res.json( JSON.parse(out.substring(cc)) )
+	end_time = new Date().getTime()
+	exec_time = end_time - times[page_name]
+
+	big_out = {'out':out.substring(cc),'outerr':'','images':[],'exec_time':exec_time}
+	res.json(big_out)
 	
 });
 
@@ -664,7 +667,9 @@ function betterexec(nameo,fff)
 		big_out = {'out':stdout+foost,'outerr':stderr,'images':[],'exec_time':exec_time}
 		send_list.push({'page_name':nameo,'data':big_out})
 		
-		if (stderr.search("Terminated") == -1) fs.writeFileSync(resbase+nameo,JSON.stringify(big_out))
+		
+		//if (stderr.search("Terminated") == -1) fs.writeFileSync(resbase+nameo,JSON.stringify(big_out))
+		if (stderr.search("Terminated") == -1) fs.writeFileSync(resbase+nameo,foost)
 		
 		//Delete Processes
 		delete processes[nameo];
