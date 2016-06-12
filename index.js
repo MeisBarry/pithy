@@ -24,9 +24,9 @@ server = http.createServer(app)
 sharejs.attach(app, options);
 
 //start socket.io
-io = require('socket.io')
-io = io.listen(server); //Socket Creations
-io.set('log level', 1)
+//io = require('socket.io')
+//io = io.listen(server); //Socket Creations
+//io.set('log level', 1)
 
 //a vestige, need to clean out.  don't change this
 
@@ -136,21 +136,21 @@ settings = {
 
 //Socket Clean Up Via: http://stackoverflow.com/a/9918524/565514
 var clients = {}
-io.sockets.on('connection', function(socket) {
-  	console.log(socket.id +" Connected")
-  	var count = 0;
-	for (var k in clients) {if (clients.hasOwnProperty(k)) {++count;}}
-	console.log("Clients Connected:"+count)
-	clients[socket.id] = socket;
-
-  socket.on('disconnect', function() {
-	console.log(socket.id +" Disconnected")
-  	var count = 0;
-	for (var k in clients) {if (clients.hasOwnProperty(k)) {++count;}}
-	console.log("Clients Connected:"+count)
-    delete clients[socket.id];
-  });
-});
+// io.sockets.on('connection', function(socket) {
+//   	console.log(socket.id +" Connected")
+//   	var count = 0;
+// 	for (var k in clients) {if (clients.hasOwnProperty(k)) {++count;}}
+// 	console.log("Clients Connected:"+count)
+// 	clients[socket.id] = socket;
+//
+//   socket.on('disconnect', function() {
+// 	console.log(socket.id +" Disconnected")
+//   	var count = 0;
+// 	for (var k in clients) {if (clients.hasOwnProperty(k)) {++count;}}
+// 	console.log("Clients Connected:"+count)
+//     delete clients[socket.id];
+//   });
+// });
 
 
 //Process Management variables
@@ -555,6 +555,9 @@ app.post('*/read', function(req, res)
 	
 });
 
+
+statuses = {}
+last_run = {}
 app.post('*/readresults', function(req, res)
 {
 	
@@ -574,12 +577,26 @@ app.post('*/readresults', function(req, res)
 	
 	//get cc
 	cc = x['cc']
+	
 	if (cc == undefined)  cc = 0;
 	end_time = new Date().getTime()
-	exec_time = end_time - times[page_name]
 
-	big_out = {'out':out.substring(cc),'outerr':'','images':[],'exec_time':exec_time}
+	if (times[page_name] != undefined) 
+	{
+		exec_time = end_time - times[page_name]
+		state = "running"
+	}
+	else 
+	{
+		exec_time = statuses[page_name]
+		state = "done"
+		
+	}
+	
+	big_out = {'out':out.substring(cc),'outerr':'','images':[],'exec_time':exec_time,'state':state,'start_time':last_run[page_name]}
 	res.json(big_out)
+	
+	
 	
 });
 
@@ -654,6 +671,8 @@ function betterexec(nameo,fff)
 	
 	start_time = new Date().getTime()
 	times[nameo] = start_time
+	last_run[nameo] = start_time 
+	
 	console.log(times)
 	chill = exec(fullcmd,
 	function (error, stdout, stderr) {
@@ -665,11 +684,12 @@ function betterexec(nameo,fff)
 		
 		foost = fs.readFileSync(tempbase+nameo).toString()
 		big_out = {'out':stdout+foost,'outerr':stderr,'images':[],'exec_time':exec_time}
-		send_list.push({'page_name':nameo,'data':big_out})
 		
 		
 		//if (stderr.search("Terminated") == -1) fs.writeFileSync(resbase+nameo,JSON.stringify(big_out))
 		if (stderr.search("Terminated") == -1) fs.writeFileSync(resbase+nameo,foost)
+		
+		statuses[nameo] = exec_time
 		
 		//Delete Processes
 		delete processes[nameo];
@@ -699,19 +719,6 @@ function makeid()
 //TODO: Figure out how to reduce interval time without buffer?
 
 old_send = []
-setInterval(function(){
-	this_send = send_list.splice(0,1)[0]
-	
-	if (this_send != undefined) 
-	{
-			//console.log(send_list.length + " message(s) in queue")
-			io.sockets.emit(this_send['page_name'],this_send['data'])
-			old_send = this_send
-		
-	};
-},100)
-
-
 
 
 //Process Checker

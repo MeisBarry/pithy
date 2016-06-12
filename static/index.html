@@ -5,7 +5,6 @@
 
 <script src="/static/shortcut.js" type="text/javascript" charset="utf-8"></script>
 <script src="/channel/bcsocket.js"></script>
-<script src="/socket.io/socket.io.js"></script>
 <script src="/static/ace/ace.js" type="text/javascript" charset="utf-8"></script>
 <script src="/static/ace/mode-python.js" type="text/javascript" charset="utf-8"></script>
 <script src="/share/share.js"></script>
@@ -68,12 +67,15 @@ foo.setUseWrapMode(true)
 //What a new pages shows
 base_template = "##Author: \n##Date Started: \n##Notes: \n";
 
+//LASTS
+lasttime = ""
+last_build = {}
+last_out = ""
+last_start = 0
+
 
 //hacks for now
 $("#save").hide()
-
-//socket starts
-var socket = io.connect('/');
 
 //var foo = null
 
@@ -148,6 +150,15 @@ function countDown()
 
 var ftimer = ""//setInterval(countDown,1000)
 
+old_stuff = ""
+
+setInterval(
+	function()
+	{
+		loadresult()
+	}
+	, 1000
+)
 
 //Kill The Script	
 $("#kill").click(function(){
@@ -267,26 +278,6 @@ doc.attach_ace(editor);
 });
 
 //Socket PushStuff
-socket.on(page.replace("/",""), function (data) {
-				//Let know that we've saved stuff
-				scrollpos = $("#images").scrollTop()
-
-				//console.log(data)
-				changed = false;
-				if (data['exec_time'] != undefined)
-				{
-					waiting_for_output = false
-					$("#status").html("saved, exec time = "+data['exec_time']/1000+"s");
-					history(page);
-					
-				}
-				gotdata = data
-				build_output(gotdata)
-				dfd = $('#images').imagesLoaded(); 
-				dfd.always(function(){$("#images").scrollTop(scrollpos)})
-
-});
-
 
 /////////////Functions///////////
 //cribbed from http://stackoverflow.com/a/1349426/565514
@@ -303,16 +294,49 @@ function makeid(){
 flot_structure = "<div id='flotter' class='flotter'></div>"
 
 function build_output(data){
+	
+	if (data['exec_time'] != null)
+	{
+
+	done = false
+	if (data['state'] == "done") done = true
+	et = data['exec_time']/1000
+
+	if (done)
+	{
+		waiting_for_output = false
+		$("#status").html("Exec Time = "+et+"s");	
+	}
+	else $("#status").html("Run Time = "+et+"s");
+	
+	lasttime = et
+	}
+
+	else
+	{
+		waiting_for_output = false
+		if (lasttime == "") $("#status").html("");
+		
+		
+	}
 	//Resize Max Size
 	widther = $("#images").width() - 1
 	if (widther > maxwidth) widther = maxwidth
 
 	//outputdata = ""
 	outputdata = []
-	boots = data['out']
+	//boots = data['out']
+	
+	if (last_start != data['start_time']) 
+		{
+			last_start = data['start_time']
+			last_out = ""
+		}
+		
+	last_out = last_out + data['out']
+	boots = last_out
 	//console.log(boots)
 	
-	thislen = data['out'].search("been")
 	
 	imlist = {}
 	
@@ -320,8 +344,6 @@ function build_output(data){
 	flotz = false
 	for (i in foots)
 	{
-		
-		
 		if (foots[i].search("##_holder_##")>-1) 
 		{
 			outputdata[outputdata.length] = "<img src='"+foots[i].replace("##_holder_##:","")+"'><br>"
@@ -386,14 +408,12 @@ function build_output(data){
 	
 	//console.log(thislen)
 	this_stuff = outputdata.join("")
-	if (this_stuff != old_stuff)
-	{
-		
 
-		old_stuff = this_stuff	
+	//this_stuff	
 		
-		$(window).load($("#images").html(this_stuff));
-	}
+	$(window).load($("#images").html(this_stuff));
+	
+	last_build = data
 	if (flotz){if (s.length > 0) $.plot("#flotter", s) } 
 	
 }
@@ -421,6 +441,7 @@ function saver(bool,page){
 	if (!waiting_for_output)
 	{ 
 	waiting_for_output = true
+	last_out = ""
 	script_name = $("#scriptname").val()
 	$("#status").html("waiting for result");
 	
@@ -497,7 +518,7 @@ function loadresult(){
 	  url: "readresults/",
 	  async:true,
 	  type:"POST",
-	  data:{page_name:page},
+	  data:{page_name:page,cc:last_out.length},
 	  success: function(data){
 		  build_output(data);
 	  }
@@ -554,8 +575,8 @@ function markresults(){
 $(window).resize(function(){
 	try
 	{
-		gotdata['out'] = " "+gotdata['out']
-		build_output(gotdata)
+		gotdata['out'] = last_out
+		//build_output(gotdata)
 	}
 	catch (err)
 	{
