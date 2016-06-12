@@ -563,16 +563,18 @@ app.post('*/readresults', function(req, res)
 	
 	x = req.body
 	back_to_pith = {}
-	out =  base_template
+	out =  ""
+	outerr = ""
 	page_name = x['page_name']
 	try
 	{
 		out = fs.readFileSync(resbase+page_name).toString()		
+		outerr = fs.readFileSync(resbase+page_name+"_err").toString()		
+		
 	}
 	catch (e)
 	{
-		//console.log(e)
-		out =  out
+		console.log(e)
 	}
 	
 	//get cc
@@ -593,7 +595,7 @@ app.post('*/readresults', function(req, res)
 		
 	}
 	
-	big_out = {'out':out.substring(cc),'outerr':'','images':[],'exec_time':exec_time,'state':state,'start_time':last_run[page_name]}
+	big_out = {'out':out.substring(cc),'outerr':outerr,'images':[],'exec_time':exec_time,'state':state,'start_time':last_run[page_name]}
 	res.json(big_out)
 	
 	
@@ -672,6 +674,9 @@ function betterexec(nameo,fff)
 	start_time = new Date().getTime()
 	times[nameo] = start_time
 	last_run[nameo] = start_time 
+	fs.writeFileSync(resbase+nameo,"")
+	fs.writeFileSync(resbase+nameo+"_err","")
+		
 	
 	console.log(times)
 	chill = exec(fullcmd,
@@ -687,7 +692,8 @@ function betterexec(nameo,fff)
 		
 		
 		//if (stderr.search("Terminated") == -1) fs.writeFileSync(resbase+nameo,JSON.stringify(big_out))
-		if (stderr.search("Terminated") == -1) fs.writeFileSync(resbase+nameo,foost)
+		fs.writeFileSync(resbase+nameo,foost)
+		fs.writeFileSync(resbase+nameo+"_err",stderr)
 		
 		statuses[nameo] = exec_time
 		

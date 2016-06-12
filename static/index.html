@@ -293,8 +293,10 @@ function makeid(){
 
 flot_structure = "<div id='flotter' class='flotter'></div>"
 
+got_data = {}
 function build_output(data){
 	
+	got_data = data
 	if (data['exec_time'] != null)
 	{
 
@@ -453,7 +455,12 @@ function saver(bool,page){
 		  url: this_port+"run/",
 		  type:"POST",
 		  async:bool,
-		  data:{page_name:page,script_name:script_name,value:editor.getSession().getValue()},
+		data:{page_name:page,script_name:script_name,value:editor.getSession().getValue()},
+	  	  success: function(data){
+	  		  setTimeout(loadresult,500)
+	  	  }
+		
+			
 		 
 		})
 	}
