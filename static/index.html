@@ -83,9 +83,10 @@ this_port = "/"+pathname.split("/")[1]+"/"
 var gotdata = ""
 var maxwidth = 800
 waiting_for_output = false
-loader(true,page);
+loader(false,page);
 history(page);
-loadresult(page);
+saver(true,pathname);
+//loadresult(page);
 
 /*Shortcuts and Button Functions*/
 //F1 to run script

@@ -659,7 +659,7 @@ function betterexec(nameo,fff)
 	
 	essence = __dirname+"/"+codebase+nameo
 	big_gulp = settings.python_path+" -u '"+essence+".py' "+estring
-	fullcmd = "touch "+tempbase+parts[1] +"; " +big_gulp+" > '"+tempbase+nameo+"'"
+	fullcmd = "touch "+tempbase+parts[1] +";timeout 20 " +big_gulp+" > '"+tempbase+nameo+"'"
 	
 	start_time = new Date().getTime()
 	times[nameo] = start_time
