@@ -1,5 +1,4 @@
 //NodeJS Imports to Make Everything Just Work
-var sharejs = require('share').server;
 
 var http = require("http"); //HTTP Server
 var url = require("url"); // URL Handling
@@ -19,16 +18,9 @@ var os = require("os")
 var glob = require('glob')
 var options = {db: {type: 'none'}};
  
-//Create the server, start up sharejs.  Note this is an _old_ version of sharejs, pre 0.8.
+//Create the server.
 server = http.createServer(app)
-sharejs.attach(app, options);
 
-//start socket.io
-io = require('socket.io')
-io = io.listen(server); //Socket Creations
-io.set('log level', 1)
-
-//a vestige, need to clean out.  don't change this
 
 //basic authentication would be great to outh2 this sucka at some point 
 app.use(express.basicAuth(function(user, pass, callback) {
@@ -147,25 +139,6 @@ settings = {
 }
 
 
-//Socket Clean Up Via: http://stackoverflow.com/a/9918524/565514
-var clients = {}
-io.sockets.on('connection', function(socket) {
-  	console.log(socket.id +" Connected")
-  	var count = 0;
-	for (var k in clients) {if (clients.hasOwnProperty(k)) {++count;}}
-	console.log("Clients Connected:"+count)
-	clients[socket.id] = socket;
-
-  socket.on('disconnect', function() {
-	console.log(socket.id +" Disconnected")
-  	var count = 0;
-	for (var k in clients) {if (clients.hasOwnProperty(k)) {++count;}}
-	console.log("Clients Connected:"+count)
-    delete clients[socket.id];
-  });
-});
-
-
 //Process Management variables
 var timers = []
 var processes = {}
@@ -248,13 +221,13 @@ app.get('/*', function(req, res){
 	 		out.reverse()
 			
 			lts = "" //list to send
-			count_limit = 20;
+			count_limit = 100;
 			
 			count = 0 
 			for (var i in out)
 			{	foo = out[i].replace(".py","")
 				dater = fs.statSync(codebase + out[i]).ctime.toDateString()
-				if (foo != "temper" && foo !=".git") lts += "<span class='leftin'><a href='/"+foo+"'>"+foo+ "</a></span><span class='rightin'> " + dater+"</span><br>";
+				if (foo != "temper" && foo[0] != "." && foo.search("_DO_NOT_") == -1 && foo != "pithy" && foo != "pithyc") lts += "<span class='leftin'><a href='/"+foo+"'>"+foo+ "</a></span><span class='rightin'> " + dater+"</span><br>";
 				count +=1
 				if (count > count_limit) break; 
 			}
@@ -363,7 +336,7 @@ app.get('/*', function(req, res){
 });
 
 app.post("*/killer",function(req,res)
-	{
+{
 		x = req.body.page_name;
 		console.log(x)
 		thispid = processes[x];
@@ -427,7 +400,7 @@ app.post('*/run', function(req, res)
 	{
 		
 		fs.writeFileSync(codebase+full_name,data);
-		fs.writeFileSync(histbase+page_name+"_"+time,data);
+		//fs.writeFileSync(histbase+page_name+"_"+time,data);
 		
 		if (gitted)
 		{
@@ -571,6 +544,8 @@ app.post('*/read', function(req, res)
 app.post('*/readresults', function(req, res)
 {
 	
+	try
+	{
 	x = req.body
 	back_to_pith = {}
 	out =  base_template
@@ -589,7 +564,9 @@ app.post('*/readresults', function(req, res)
 	cc = x['cc']
 	if (cc == undefined)  cc = 0;
 	res.json( JSON.parse(out.substring(cc)) )
-	
+	}
+	catch (e){res.json("")}
+
 });
 
 app.post('*/copyto',function(req,res)
@@ -701,22 +678,6 @@ function makeid()
 
     return text;
 }
-
-//Queue to prevent socket race conditions, fires a message from the buffer every x ms
-//TODO: Figure out how to reduce interval time without buffer?
-
-old_send = []
-setInterval(function(){
-	this_send = send_list.splice(0,1)[0]
-	
-	if (this_send != undefined) 
-	{
-			//console.log(send_list.length + " message(s) in queue")
-			io.sockets.emit(this_send['page_name'],this_send['data'])
-			old_send = this_send
-		
-	};
-},100)
 
 
 
