@@ -4,10 +4,10 @@ from commands import getoutput as go
 import re
 import os 
 #get process list
-tokill = os.path.dirname(os.path.realpath(__file__))+'/code/' + sys.argv[1]
-print tokill
+tokill = os.path.dirname(os.path.realpath(__file__))+'/../code/' + sys.argv[1]
+print(tokill)
 pss = go("ps ax | grep %s.py" % (tokill))
-print pss
+print(pss)
 pss = pss.split("\n")
 
 for p in pss:
@@ -17,9 +17,9 @@ for p in pss:
     s = tk.find(ps) 
     #print tk[0]
     tk = re.findall(r'\d+', tk[s:])
-    print tk
+    print(tk)
     #for this process and each subprocess
     for t in tk:
-      print go("kill -9 %s" % t)
+      print(go("kill -9 %s" % t))
 
 

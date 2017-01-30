@@ -142,7 +142,7 @@ catch (e)
 //Basic Settings
 settings = {
 	//"bad_words" : ["rm ","write","while True:","open "],
-	"python_path" : "/usr/bin/python",
+	"python_path" : "/usr/bin/python3",
 	//'prepend' : "fs.readFileSync('static/prepend.txt').toString()"
 	'prepend' : ""
 }
@@ -659,7 +659,7 @@ function betterexec(nameo,fff)
 	}
 	
 	essence = __dirname+"/"+codebase+nameo
-	big_gulp = settings.python_path+" -u '"+essence+".py' "+estring
+	big_gulp = "nice -n 10 "+settings.python_path+" -u '"+essence+".py' "+estring
 	fullcmd = "touch "+tempbase+parts[1] +"; " +big_gulp+" > '"+tempbase+nameo+"'"
 	
 	start_time = new Date().getTime()
